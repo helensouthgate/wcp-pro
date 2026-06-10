@@ -35,6 +35,7 @@ Functions:
 | `/api/login` | GET/POST | — | Session check / login / logout |
 | `/api/sync` | POST | admin | Pull fixtures + results from football-data.org |
 | `/api/predict` | POST | admin | Generate predictions now |
+| `sync-scheduled` | cron | system | Sync fixtures + results every 15 min |
 | `predict-scheduled` | cron | system | Hourly prediction refresh |
 
 Pure logic lives in `lib/` (fully unit-tested); functions in
@@ -79,9 +80,11 @@ Set these in `.env` for local dev and in the Netlify dashboard for production:
 2. `netlify init` (or `netlify sites:create`) and link this folder
 3. Set the four env vars: `netlify env:set NAME value` (or via the dashboard)
 4. `netlify deploy --build --prod`
-5. Open `/admin`, log in, and **Sync now**
+5. The site **auto-syncs every 15 minutes**, so it populates on its own shortly
+   after deploy. To populate immediately, open `/admin`, log in, and **Sync now**.
 
-The scheduled prediction function runs automatically once deployed.
+The scheduled sync (every 15 min) and prediction (hourly) functions run
+automatically once deployed.
 
 ## Notes
 
