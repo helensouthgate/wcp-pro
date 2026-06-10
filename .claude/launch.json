@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "wcp-pro",
+      "runtimeExecutable": "/opt/homebrew/bin/netlify",
+      "runtimeArgs": ["dev", "--offline", "--port", "8888"],
+      "port": 8888
+    }
+  ]
+}
