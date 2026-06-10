@@ -22,7 +22,8 @@
   function timeZoneAbbrev(utcDate, timeZone, locale) {
     var d = utcDate ? new Date(utcDate) : new Date();
     if (isNaN(d)) return "";
-    var part = new Intl.DateTimeFormat(locale || "en-US", {
+    // locale undefined → use the viewer's own locale.
+    var part = new Intl.DateTimeFormat(locale, {
       timeZone: timeZone, timeZoneName: "short"
     }).formatToParts(d).find(function (p) { return p.type === "timeZoneName"; });
     return part ? part.value : "";
@@ -33,7 +34,7 @@
     if (!utcDate) return "TBC";
     var d = new Date(utcDate);
     if (isNaN(d)) return "TBC";
-    var dateStr = new Intl.DateTimeFormat(opts.locale || "en-US", {
+    var dateStr = new Intl.DateTimeFormat(opts.locale, {
       timeZone: opts.timeZone, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"
     }).format(d);
     var tz = timeZoneAbbrev(utcDate, opts.timeZone, opts.locale);
