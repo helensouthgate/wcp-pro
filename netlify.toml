@@ -1,0 +1,14 @@
+# Netlify configuration for WC 2026 Sweepstake
+# Function routing is declared per-function via `export const config = { path }`
+# (Netlify Functions v2), so no manual redirects are needed here.
+
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+[dev]
+  publish = "public"
+  # `netlify dev` auto-loads variables from .env
+
+[functions]
+  node_bundler = "esbuild"

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WC 2026 Sweepstake</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <div class="logo">
+      <span style="font-size:24px">🏆</span>
+      <h1>WC 2026 Sweepstake</h1>
+      <span class="tbadge">USA · Canada · Mexico</span>
+    </div>
+    <nav class="nav-tabs">
+      <button class="nav-tab active" data-panel="leaderboard">Leaderboard</button>
+      <button class="nav-tab" data-panel="fixtures">Fixtures</button>
+      <button class="nav-tab" data-panel="groups">Groups</button>
+    </nav>
+    <span class="last-updated" id="last-updated"></span>
+  </div>
+</header>
+
+<main class="page">
+
+  <!-- LEADERBOARD -->
+  <div id="panel-leaderboard" class="panel active">
+    <div class="stats-bar" id="stats-bar"></div>
+    <div class="toolbar">
+      <input type="text" id="lb-search" placeholder="Search name or team…">
+      <select id="lb-filter">
+        <option value="all">Everyone</option>
+        <option value="in">Still in</option>
+        <option value="out">Eliminated</option>
+      </select>
+      <select id="lb-group">
+        <option value="all">All groups</option>
+      </select>
+    </div>
+    <div class="cards-grid" id="lb-grid"></div>
+  </div>
+
+  <!-- FIXTURES -->
+  <div id="panel-fixtures" class="panel">
+    <div class="toolbar">
+      <select id="fix-stage">
+        <option value="all">All fixtures</option>
+        <option value="played">Played</option>
+        <option value="upcoming">Upcoming</option>
+        <option value="week">This week</option>
+      </select>
+      <select id="fix-group">
+        <option value="all">All groups</option>
+      </select>
+    </div>
+    <div id="fix-list"></div>
+  </div>
+
+  <!-- GROUPS -->
+  <div id="panel-groups" class="panel">
+    <div class="groups-grid" id="groups-grid"></div>
+  </div>
+
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="/when.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

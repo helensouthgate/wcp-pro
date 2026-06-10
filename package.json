@@ -1,0 +1,20 @@
+{
+  "name": "wcp-pro",
+  "version": "1.0.0",
+  "description": "World Cup 2026 office sweepstake tracker — secure Netlify build",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "netlify dev",
+    "test": "node --test tests/*.test.js",
+    "test:watch": "node --test --watch tests/*.test.js",
+    "test:keys": "node --env-file=.env --test tests/live/keys.test.js"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0",
+    "@netlify/functions": "^2.8.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

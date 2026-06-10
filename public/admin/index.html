@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Admin · WC 2026 Sweepstake</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <div class="logo">
+      <span style="font-size:24px">🔐</span>
+      <h1>Sweepstake Admin</h1>
+    </div>
+    <nav class="nav-tabs">
+      <a class="nav-tab" href="/">← Public site</a>
+      <button class="nav-tab hidden" id="logout-btn">Log out</button>
+    </nav>
+    <span class="last-updated" id="last-updated"></span>
+  </div>
+</header>
+
+<!-- LOGIN -->
+<div id="login-view">
+  <div class="login-wrap">
+    <h2>Admin access</h2>
+    <p>Enter the admin password to manage scores, predictions and eliminations.</p>
+    <input type="password" id="pw" placeholder="Password" autocomplete="current-password">
+    <button class="btn btn-primary" id="login-btn">Unlock</button>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<main class="page hidden" id="admin-view">
+  <div class="admin-block">
+    <h3>Sync schedule &amp; results</h3>
+    <p class="desc">Pull the latest fixtures and finished scores from football-data.org. Run this once to load the schedule, then any time to refresh results.</p>
+    <button class="btn btn-primary" id="sync-btn">↻ Sync now</button>
+    <span class="last-updated" id="sync-status"></span>
+  </div>
+
+  <div class="admin-block">
+    <h3>AI predictions</h3>
+    <p class="desc">Predictions refresh automatically every hour. Use this to force a refresh now (e.g. right after a sync).</p>
+    <button class="btn btn-primary" id="predict-btn">✨ Generate now</button>
+    <span class="last-updated" id="predict-status"></span>
+  </div>
+
+  <div class="admin-block">
+    <h3>Manual score entry</h3>
+    <p class="desc">Override or fill in results by hand. Saved scores feed the group tables and auto-elimination.</p>
+    <div class="toolbar">
+      <select id="adm-stage">
+        <option value="upcoming">Upcoming</option>
+        <option value="played">Played</option>
+        <option value="all">All fixtures</option>
+      </select>
+      <select id="adm-group"><option value="all">All groups</option></select>
+    </div>
+    <div id="admin-matches"></div>
+  </div>
+
+  <div class="admin-block">
+    <h3>Elimination overrides</h3>
+    <p class="desc">Teams are eliminated automatically from results. Use these only to correct an edge case. Click a tag to clear the override.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <select id="elim-select" style="flex:1;max-width:260px;padding:7px 11px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-size:13px">
+        <option value="">Select team…</option>
+      </select>
+      <button class="btn btn-danger" id="elim-btn">Force eliminate</button>
+    </div>
+    <div class="elim-tags" id="override-tags"></div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+<script src="/when.js"></script>
+<script src="/admin/admin.js"></script>
+</body>
+</html>
