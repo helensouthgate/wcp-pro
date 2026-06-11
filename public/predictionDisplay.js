@@ -1,5 +1,41 @@
 // Shared prediction HTML formatter (mirrors lib/predictionDisplay.js for the browser).
 
+function parseScorePair(score) {
+  const m = String(score || "").trim().match(/^(\d+)\s*[-–]\s*(\d+)$/);
+  if (!m) return null;
+  return [+m[1], +m[2]];
+}
+
+function winnerFromScore(home, away, homeGoals, awayGoals) {
+  if (homeGoals > awayGoals) return home;
+  if (awayGoals > homeGoals) return away;
+  return "Draw";
+}
+
+function scoresMatchWinner(home, away, homeGoals, awayGoals, winner) {
+  const w = String(winner || "").trim();
+  if (!w) return true;
+  if (w === "Draw") return homeGoals === awayGoals;
+  return w === winnerFromScore(home, away, homeGoals, awayGoals);
+}
+
+function reconcilePredictionScore(pred, { home, away } = {}) {
+  if (!pred || pred.legacy) return pred;
+  const pair = parseScorePair(pred.score);
+  if (!pair || !home || !away) return pred;
+  const winner = String(pred.winner || "").trim();
+  if (!winner) return { ...pred, score: `${pair[0]}-${pair[1]}` };
+  const [hg, ag] = pair;
+  if (scoresMatchWinner(home, away, hg, ag, winner)) {
+    return { ...pred, score: `${hg}-${ag}` };
+  }
+  if (scoresMatchWinner(home, away, ag, hg, winner)) {
+    return { ...pred, score: `${ag}-${hg}` };
+  }
+  const { score: _drop, ...rest } = pred;
+  return rest;
+}
+
 function formatPredictionScoreLine(pred, home, away, esc) {
   if (!pred || typeof pred === "string" || pred.legacy) return "";
   const score = pred.score || "";
@@ -29,6 +65,8 @@ function formatPredictionHtml(pred, esc, { home = "", away = "" } = {}) {
        <p class="pred-body">${esc(text)}</p>`
     );
   }
+
+  if (home && away) pred = reconcilePredictionScore(pred, { home, away });
 
   const confLabel = pred.confidence
     ? `<span class="pred-conf">${esc(pred.confidence)}</span>`

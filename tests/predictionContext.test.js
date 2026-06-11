@@ -24,8 +24,8 @@ test("buildTournamentContext includes group table and recent results", () => {
 test("fixturePromptLine includes office draw names", () => {
   const drawMap = drawByTeam(DRAW);
   const line = fixturePromptLine(groupLFixtures[1], drawMap);
+  assert.match(line, /HOME England vs AWAY Croatia/);
   assert.match(line, /Helen Southgate \(England\)/);
-  assert.match(line, /Axel Kenfack \(Panama\)|Croatia/);
 });
 
 test("batchFixturesForPrediction keeps group clusters together", () => {
