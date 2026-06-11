@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>Admin · WC 2026 Sweepstake</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -12,10 +15,10 @@
 <header class="header">
   <div class="header-inner">
     <div class="logo">
-      <span style="font-size:24px">🔐</span>
+      <span class="logo-icon" aria-hidden="true">🔐</span>
       <h1>Sweepstake Admin</h1>
     </div>
-    <nav class="nav-tabs">
+    <nav class="nav-tabs" aria-label="Admin navigation">
       <a class="nav-tab" href="/">← Public site</a>
       <button class="nav-tab hidden" id="logout-btn">Log out</button>
     </nav>
@@ -23,7 +26,6 @@
   </div>
 </header>
 
-<!-- LOGIN -->
 <div id="login-view">
   <div class="login-wrap">
     <h2>Admin access</h2>
@@ -33,7 +35,6 @@
   </div>
 </div>
 
-<!-- ADMIN -->
 <main class="page hidden" id="admin-view">
   <div class="admin-block">
     <h3>Sync schedule &amp; results</h3>
@@ -56,12 +57,12 @@
     <h3>Manual score entry</h3>
     <p class="desc">Override or fill in results by hand. Saved scores feed the group tables and auto-elimination.</p>
     <div class="toolbar">
-      <select id="adm-stage">
+      <select id="adm-stage" aria-label="Filter fixtures">
         <option value="upcoming">Upcoming</option>
         <option value="played">Played</option>
         <option value="all">All fixtures</option>
       </select>
-      <select id="adm-group"><option value="all">All groups</option></select>
+      <select id="adm-group" aria-label="Filter by group"><option value="all">All groups</option></select>
     </div>
     <div id="admin-matches"></div>
   </div>
@@ -69,8 +70,8 @@
   <div class="admin-block">
     <h3>Elimination overrides</h3>
     <p class="desc">Teams are eliminated automatically from results. Use these only to correct an edge case. Click a tag to clear the override.</p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-      <select id="elim-select" style="flex:1;max-width:260px;padding:7px 11px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-size:13px">
+    <div class="toolbar">
+      <select id="elim-select" aria-label="Select team to eliminate">
         <option value="">Select team…</option>
       </select>
       <button class="btn btn-danger" id="elim-btn">Force eliminate</button>
@@ -78,6 +79,10 @@
     <div class="elim-tags" id="override-tags"></div>
   </div>
 </main>
+
+<footer class="site-footer">
+  <p>WC 2026 Office Sweepstake · <a href="https://www.accelerationpartners.com" target="_blank" rel="noopener">Acceleration Partners</a></p>
+</footer>
 
 <div class="toast" id="toast"></div>
 <script src="/when.js"></script>

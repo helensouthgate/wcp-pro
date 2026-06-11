@@ -96,8 +96,8 @@ function renderStats() {
   const played = view.fixtures.filter((f) => f.played).length;
   const upcoming = view.fixtures.length - played;
   $("stats-bar").innerHTML = `
-    <div class="stat"><div class="stat-num" style="color:#0f6e56">${alive}</div><div class="stat-label">Still in</div></div>
-    <div class="stat"><div class="stat-num" style="color:#a32d2d">${out}</div><div class="stat-label">Eliminated</div></div>
+    <div class="stat"><div class="stat-num stat-num--in">${alive}</div><div class="stat-label">Still in</div></div>
+    <div class="stat"><div class="stat-num stat-num--out">${out}</div><div class="stat-label">Eliminated</div></div>
     <div class="stat"><div class="stat-num">${played}</div><div class="stat-label">Played</div></div>
     <div class="stat"><div class="stat-num">${upcoming}</div><div class="stat-label">Upcoming</div></div>`;
 }

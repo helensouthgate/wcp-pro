@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WC 2026 Sweepstake</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script>
 (function () {
   var KEY = "wcp-tab";
@@ -23,11 +26,11 @@
 <header class="header">
   <div class="header-inner">
     <div class="logo">
-      <span style="font-size:24px">🏆</span>
+      <span class="logo-icon" aria-hidden="true">🏆</span>
       <h1>WC 2026 Sweepstake</h1>
       <span class="tbadge">USA · Canada · Mexico</span>
     </div>
-    <nav class="nav-tabs">
+    <nav class="nav-tabs" aria-label="Main navigation">
       <button class="nav-tab" data-panel="leaderboard">Leaderboard</button>
       <button class="nav-tab" data-panel="fixtures">Fixtures</button>
       <button class="nav-tab" data-panel="groups">Groups</button>
@@ -38,48 +41,50 @@
 
 <main class="page">
 
-  <!-- LEADERBOARD -->
   <div id="panel-leaderboard" class="panel">
     <div class="info-callout sync-notice" id="sync-notice-lb" aria-live="polite"></div>
     <div class="stats-bar" id="stats-bar"></div>
     <div class="toolbar">
-      <input type="text" id="lb-search" placeholder="Search name or team…">
-      <select id="lb-filter">
+      <input type="text" id="lb-search" placeholder="Search name or team…" aria-label="Search participants">
+      <select id="lb-filter" aria-label="Filter by status">
         <option value="all">Everyone</option>
         <option value="in">Still in</option>
         <option value="out">Eliminated</option>
       </select>
-      <select id="lb-group">
+      <select id="lb-group" aria-label="Filter by group">
         <option value="all">All groups</option>
       </select>
     </div>
     <div class="cards-grid" id="lb-grid"></div>
   </div>
 
-  <!-- FIXTURES -->
   <div id="panel-fixtures" class="panel">
     <div class="info-callout sync-notice" id="sync-notice-fix" aria-live="polite"></div>
     <div class="toolbar">
-      <select id="fix-stage">
+      <select id="fix-stage" aria-label="Filter fixtures">
         <option value="all">All fixtures</option>
         <option value="played">Played</option>
         <option value="upcoming">Upcoming</option>
         <option value="week">This week</option>
       </select>
-      <select id="fix-group">
+      <select id="fix-group" aria-label="Filter by group">
         <option value="all">All groups</option>
       </select>
     </div>
     <div id="fix-list"></div>
   </div>
 
-  <!-- GROUPS -->
   <div id="panel-groups" class="panel">
     <div class="info-callout sync-notice" id="sync-notice-grp" aria-live="polite"></div>
     <div class="groups-grid" id="groups-grid"></div>
   </div>
 
 </main>
+
+<footer class="site-footer">
+  <p>WC 2026 Office Sweepstake · Built by <a href="https://www.accelerationpartners.com" target="_blank" rel="noopener">Acceleration Partners</a></p>
+</footer>
+
 <div class="toast" id="toast"></div>
 
 <script src="/when.js"></script>
