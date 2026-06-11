@@ -15,8 +15,10 @@ static hosting + Netlify Functions, with all API keys held server-side.
   participants see the same data.
 - **Auto-elimination** — eliminations are derived from results: 4th place of
   each completed group, the 4 worst third-placed teams, and knockout losers.
-- **Hourly predictions** — a scheduled function refreshes AI predictions every
-  hour; visitors only ever read the cached text (no client-side API calls).
+- **Daily predictions** — a scheduled function kicks off a background job every
+  day at 6am UK time (05:00 UTC) to regenerate one-sentence Sonnet predictions
+  for upcoming matches in the next 14 days; visitors only ever read the cached
+  text (no client-side API calls).
 
 ## Architecture
 
@@ -34,9 +36,10 @@ Functions:
 | `/api/state` | POST | admin | Manual scores / elimination overrides |
 | `/api/login` | GET/POST | — | Session check / login / logout |
 | `/api/sync` | POST | admin | Pull fixtures + results from football-data.org |
-| `/api/predict` | POST | admin | Generate predictions now |
+| `/api/predict` | POST | admin | Start prediction job (returns 202 immediately) |
+| `predict-background` | POST | internal | Long-running prediction worker (up to 15 min) |
 | `sync-scheduled` | cron | system | Sync fixtures + results every 15 min |
-| `predict-scheduled` | cron | system | Hourly prediction refresh |
+| `predict-scheduled` | cron | system | Daily 6am UK launcher → `predict-background` |
 
 Pure logic lives in `lib/` (fully unit-tested); functions in
 `netlify/functions/` are thin wrappers that add I/O and auth.
@@ -69,7 +72,7 @@ Set these in `.env` for local dev and in the Netlify dashboard for production:
 
 | Var | Purpose |
 |---|---|
-| `ANTHROPIC_API_KEY` | AI match predictions |
+| `ANTHROPIC_API_KEY` | AI match predictions (Claude Sonnet 4.6, next 14 days). Admin shows an estimated USD cost after each run. |
 | `FOOTBALL_DATA_API_KEY` | Fixtures + live scores |
 | `ADMIN_PASSWORD` | Unlocks `/admin` |
 | `ADMIN_SESSION_SECRET` | Signs the admin session cookie |
@@ -83,7 +86,7 @@ Set these in `.env` for local dev and in the Netlify dashboard for production:
 5. The site **auto-syncs every 15 minutes**, so it populates on its own shortly
    after deploy. To populate immediately, open `/admin`, log in, and **Sync now**.
 
-The scheduled sync (every 15 min) and prediction (hourly) functions run
+The scheduled sync (every 15 min) and prediction (daily) functions run
 automatically once deployed.
 
 ## Notes

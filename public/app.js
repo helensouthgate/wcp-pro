@@ -1,9 +1,11 @@
 // ─── PUBLIC, READ-ONLY FRONT-END ─────────────────────────────────────────────
-// Fetches the shared view from /api/state and renders it. No writes, no secrets,
-// no localStorage. "This week" is computed in the viewer's local timezone.
+// Fetches the shared view from /api/state and renders it. No writes, no secrets.
+// "This week" is computed in the viewer's local timezone.
 
 let view = null;          // latest /api/state payload
-const shownPredictions = new Set(); // fixture ids currently revealed
+const PREDICTION_WINDOW_DAYS = 14;
+const TAB_KEY = "wcp-tab";
+const PANELS = ["leaderboard", "fixtures", "groups"];
 
 const $ = (id) => document.getElementById(id);
 const isElim = (t) => view.eliminated.includes(t);
@@ -35,6 +37,21 @@ function isThisWeek(fx, now) {
   return t >= s && t < s + 7 * 864e5;
 }
 
+function predictionSection(inner) {
+  return `<div class="pred-section"><div class="pred-label">AI prediction</div>${inner}</div>`;
+}
+
+function renderPredictionSlot(m) {
+  const pred = view.predictions[m.id];
+  if (pred) return formatPredictionHtml(pred, esc);
+  if (!m.played) {
+    return predictionSection(
+      `<div class="pred-unavailable">Predictions are only generated for upcoming matches in the next ${PREDICTION_WINDOW_DAYS} days.</div>`
+    );
+  }
+  return "";
+}
+
 function filterFixtures(fixtures, mode) {
   const now = Date.now();
   if (mode === "played") return fixtures.filter((f) => f.played);
@@ -45,11 +62,26 @@ function filterFixtures(fixtures, mode) {
 
 // ─── NAV ──────────────────────────────────────────────────────────────────────
 
+function saveTab(id) {
+  try { localStorage.setItem(TAB_KEY, id); } catch {}
+}
+
+function savedTab() {
+  try {
+    const id = localStorage.getItem(TAB_KEY);
+    return PANELS.includes(id) ? id : "leaderboard";
+  } catch {
+    return "leaderboard";
+  }
+}
+
 function nav(id, btn) {
+  document.documentElement.dataset.tab = id;
   document.querySelectorAll(".panel").forEach((p) => p.classList.remove("active"));
   document.querySelectorAll(".nav-tab").forEach((t) => t.classList.remove("active"));
   $("panel-" + id).classList.add("active");
   btn.classList.add("active");
+  saveTab(id);
   if (id === "leaderboard") renderLB();
   if (id === "fixtures") renderFixtures();
   if (id === "groups") renderGroups();
@@ -129,8 +161,6 @@ function renderFixtures() {
   if (!matches.length) { list.innerHTML = '<div class="empty">No matches match this filter.</div>'; return; }
   list.innerHTML = matches.map((m) => {
     const hp = byTeam(m.home), ap = byTeam(m.away);
-    const pred = view.predictions[m.id];
-    const show = shownPredictions.has(m.id);
     return `<div class="match-card">
       <div class="match-grid">
         <div class="match-team">
@@ -152,10 +182,7 @@ function renderFixtures() {
         <span class="stage-tag">${fmtDate(m.utcDate)} &middot; ${stageLabel(m)}</span>
         <span class="pill ${m.played ? "pill-in" : "pill-up"}">${m.played ? "Full time" : "Upcoming"}</span>
       </div>
-      ${pred && show ? `<div class="pred-box">🤖 <strong>AI prediction:</strong> ${esc(pred)}</div>` : ""}
-      ${pred ? `<div class="pred-actions">
-        <button class="btn" data-toggle-pred="${m.id}">${show ? "Hide AI prediction" : "Show AI prediction"}</button>
-      </div>` : ""}
+      ${renderPredictionSlot(m)}
     </div>`;
   }).join("");
 }
@@ -185,12 +212,72 @@ function renderGroups() {
   }).join("");
 }
 
+// ─── SYNC STATUS (fixtures / results refresh every 15 min) ───────────────────
+
+const SYNC_NOTICE_IDS = ["sync-notice-lb", "sync-notice-fix", "sync-notice-grp"];
+let syncClockId = null;
+
+const fmtWhen = (iso) => new Date(iso).toLocaleString([], {
+  day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"
+});
+
+// Next :00 / :15 / :30 / :45 UTC — matches the sync-scheduled cron.
+function nextSyncAt(from = Date.now()) {
+  const d = new Date(from);
+  d.setUTCSeconds(0, 0);
+  d.setUTCMilliseconds(0);
+  const mins = d.getUTCMinutes();
+  const remainder = mins % 15;
+  if (remainder === 0 && from <= d.getTime()) d.setUTCMinutes(mins + 15);
+  else d.setUTCMinutes(mins + (15 - remainder));
+  return d;
+}
+
+function formatCountdown(ms) {
+  if (ms <= 0) return "any moment";
+  const totalSec = Math.ceil(ms / 1000);
+  if (totalSec < 60) return `${totalSec}s`;
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  return sec ? `${min}m ${sec}s` : `${min}m`;
+}
+
+function syncNoticeHtml() {
+  const last = view.lastSync ? fmtWhen(view.lastSync) : null;
+  const next = nextSyncAt();
+  const nextIn = formatCountdown(next.getTime() - Date.now());
+  const nextAt = fmtWhen(next.toISOString());
+  const lastPart = last
+    ? `Last updated <strong>${esc(last)}</strong>`
+    : "Not synced yet";
+  return (
+    `Fixtures and results update every 15 minutes. ${lastPart} · ` +
+    `Next update in <strong>${esc(nextIn)}</strong> (at ${esc(nextAt)})`
+  );
+}
+
+function updateSyncNotices() {
+  if (!view) return;
+  const html = syncNoticeHtml();
+  for (const id of SYNC_NOTICE_IDS) {
+    const el = $(id);
+    if (el) el.innerHTML = html;
+  }
+}
+
+function startSyncClock() {
+  if (syncClockId) clearInterval(syncClockId);
+  updateSyncNotices();
+  syncClockId = setInterval(updateSyncNotices, 1000);
+}
+
 // ─── LOAD ──────────────────────────────────────────────────────────────────────
 
 function updateLastUpdated() {
   const el = $("last-updated");
-  if (!view.lastUpdated) { el.textContent = ""; return; }
-  el.textContent = "Updated " + new Date(view.lastUpdated).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  const when = view.lastSync || view.lastUpdated;
+  if (!when) { el.textContent = ""; return; }
+  el.textContent = "Updated " + fmtWhen(when);
 }
 
 function fillGroupSelects() {
@@ -210,7 +297,10 @@ async function load() {
   }
   fillGroupSelects();
   updateLastUpdated();
-  renderLB();
+  startSyncClock();
+  const panel = savedTab();
+  const tab = document.querySelector(`.nav-tab[data-panel="${panel}"]`);
+  nav(panel, tab || document.querySelector('.nav-tab[data-panel="leaderboard"]'));
 }
 
 function toast(msg) {
@@ -226,13 +316,4 @@ document.querySelectorAll(".nav-tab").forEach((btn) =>
   $(id).addEventListener("input", renderLB));
 ["fix-stage", "fix-group"].forEach((id) =>
   $(id).addEventListener("change", renderFixtures));
-$("fix-list").addEventListener("click", (e) => {
-  const btn = e.target.closest("[data-toggle-pred]");
-  if (!btn) return;
-  const id = btn.dataset.togglePred;
-  if (shownPredictions.has(id)) shownPredictions.delete(id);
-  else shownPredictions.add(id);
-  renderFixtures();
-});
-
 load();

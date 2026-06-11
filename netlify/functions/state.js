@@ -15,16 +15,16 @@ import { GROUPS, DRAW } from "../../lib/data.js";
 export const config = { path: "/api/state" };
 
 export default async function handler(req) {
-  if (req.method === "GET") return handleGet();
+  if (req.method === "GET") return handleGet(req);
   if (req.method === "POST") return handlePost(req);
   return error("Method not allowed", 405);
 }
 
-async function buildView() {
+async function buildView(req) {
   const [state, rawFixtures] = await Promise.all([readState(), readFixtures()]);
   const fixtures = sortByDate(mergeManualScores(rawFixtures, state.manualScores));
   const { eliminated, tables, thirdsRanked, allGroupsComplete } = computeEliminated(fixtures);
-  return {
+  const view = {
     groups: GROUPS,
     draw: DRAW,
     fixtures,
@@ -37,11 +37,13 @@ async function buildView() {
     lastSync: state.lastSync,
     lastPrediction: state.lastPrediction
   };
+  if (req && isAdmin(req)) view.lastPredictionCost = state.lastPredictionCost ?? null;
+  return view;
 }
 
-async function handleGet() {
+async function handleGet(req) {
   try {
-    return json(await buildView());
+    return json(await buildView(req));
   } catch (e) {
     return error("Failed to load state: " + e.message, 500);
   }
@@ -95,5 +97,5 @@ async function handlePost(req) {
   }
 
   await writeState(state);
-  return json(await buildView());
+  return json(await buildView(req));
 }
