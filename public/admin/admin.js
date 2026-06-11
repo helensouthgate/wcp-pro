@@ -80,12 +80,35 @@ function formatPredictionResult({ elapsed = null } = {}) {
   return parts.join(" · ");
 }
 
+function isJobFailureForRun(job, previousLastPrediction) {
+  if (!job || job.status !== "failed" || !job.startedAt) return false;
+  if (!previousLastPrediction) return true;
+  return job.startedAt > previousLastPrediction;
+}
+
+function renderPredictionError(job) {
+  const el = $("predict-error");
+  if (!job || job.status !== "failed") {
+    el.classList.add("hidden");
+    el.innerHTML = "";
+    return;
+  }
+  const when = job.failedAt ? fmt(job.failedAt) : "just now";
+  el.innerHTML = `<strong>Prediction failed</strong> (${esc(when)}): ${esc(job.error || "Unknown error")}`;
+  el.classList.remove("hidden");
+}
+
+function clearPredictionError() {
+  renderPredictionError(null);
+}
+
 function renderPredictionResult({ elapsed = null, running = false } = {}) {
   const result = $("predict-result");
   const timer = $("predict-timer");
   if (running) {
     result.classList.add("hidden");
     result.innerHTML = "";
+    clearPredictionError();
     return;
   }
   const html = formatPredictionResult({ elapsed });
@@ -107,6 +130,7 @@ async function loadState() {
   $("sync-status").textContent = view.lastSync ? "Last synced " + fmt(view.lastSync) : "Not synced yet";
   $("predict-status").textContent = view.lastPrediction ? "Last run " + fmt(view.lastPrediction) : "Not run yet";
   renderPredictionResult();
+  renderPredictionError(view.predictionJob);
   renderMatches();
   renderOverrides();
 }
@@ -220,14 +244,31 @@ async function sync() {
   finally { $("sync-btn").disabled = false; $("sync-btn").innerHTML = "↻ Sync now"; }
 }
 
+function runningLabel(job) {
+  if (job?.status === "running" && job.batch > 0) {
+    return `Running… batch ${job.batch}`;
+  }
+  return "Running…";
+}
+
 async function waitForPrediction(previousRun, timer, { attempts = 450, delayMs = 2000 } = {}) {
   for (let i = 0; i < attempts; i++) {
     await new Promise((r) => setTimeout(r, delayMs));
     const state = await api("/api/state");
+    if (isJobFailureForRun(state.predictionJob, previousRun)) {
+      view = state;
+      timer.finish("Failed after", { done: false, hide: true });
+      renderPredictionError(state.predictionJob);
+      return false;
+    }
+    if (state.predictionJob?.status === "running" && state.predictionJob.batch > 0) {
+      timer.start(runningLabel(state.predictionJob));
+    }
     if (state.lastPrediction && state.lastPrediction !== previousRun) {
       view = state;
       $("predict-status").textContent = "Last run " + fmt(view.lastPrediction);
       const elapsed = timer.finish("Completed in", { hide: true });
+      clearPredictionError();
       renderPredictionResult({ elapsed });
       return true;
     }
@@ -243,6 +284,8 @@ async function generate() {
   const timer = createPredictTimer();
   try {
     renderPredictionResult({ running: true });
+    clearPredictionError();
+    $("predict-status").textContent = "Running…";
     timer.start("Running…");
     const r = await api("/api/predict", { method: "POST" });
     if (r.started) {

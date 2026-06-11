@@ -34,6 +34,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .predict-timer{color:var(--amber);font-variant-numeric:tabular-nums}
 .predict-result{font-size:13px;color:var(--green);margin:8px 0 0;line-height:1.55;max-width:640px}
 .predict-result strong{font-weight:600}
+.predict-error{font-size:13px;color:var(--red,#a32d2d);margin:8px 0 0;line-height:1.55;max-width:640px;background:var(--red-bg,#fde8e8);border-radius:var(--radius);padding:10px 12px;border-left:2px solid var(--red,#a32d2d)}
+.predict-error strong{font-weight:600}
 .pred-unavailable{margin-top:10px;font-size:12px;line-height:1.55;color:var(--text3)}
 .page{max-width:1200px;margin:0 auto;padding:24px}
 .panel{display:none}

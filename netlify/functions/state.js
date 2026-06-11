@@ -37,7 +37,10 @@ async function buildView(req) {
     lastSync: state.lastSync,
     lastPrediction: state.lastPrediction
   };
-  if (req && isAdmin(req)) view.lastPredictionCost = state.lastPredictionCost ?? null;
+  if (req && isAdmin(req)) {
+    view.lastPredictionCost = state.lastPredictionCost ?? null;
+    view.predictionJob = state.predictionJob ?? null;
+  }
   return view;
 }
 
