@@ -5,6 +5,7 @@
 let view = null;          // latest /api/state payload
 const PREDICTION_WINDOW_DAYS = 14;
 const TAB_KEY = "wcp-tab";
+const PRED_OPEN_KEY = "wcp-pred-open";
 const PANELS = ["leaderboard", "fixtures", "groups"];
 
 const $ = (id) => document.getElementById(id);
@@ -37,19 +38,80 @@ function isThisWeek(fx, now) {
   return t >= s && t < s + 7 * 864e5;
 }
 
-function predictionSection(inner) {
-  return `<div class="pred-section"><div class="pred-label">AI prediction</div>${inner}</div>`;
+function getPredOpenState() {
+  try {
+    const raw = localStorage.getItem(PRED_OPEN_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
 }
 
-function renderPredictionSlot(m) {
+function isPredExpanded(id) {
+  return !!getPredOpenState()[id];
+}
+
+function setPredExpanded(id, expanded) {
+  const state = getPredOpenState();
+  if (expanded) state[id] = true;
+  else delete state[id];
+  try { localStorage.setItem(PRED_OPEN_KEY, JSON.stringify(state)); } catch {}
+}
+
+function predictionContent(m) {
   const pred = view.predictions[m.id];
-  if (pred) return formatPredictionHtml(pred, esc);
+  if (pred) return formatPredictionHtml(pred, esc, { home: m.home, away: m.away });
   if (!m.played) {
-    return predictionSection(
-      `<div class="pred-unavailable">Predictions are only generated for upcoming matches in the next ${PREDICTION_WINDOW_DAYS} days.</div>`
+    return formatPredictionUnavailable(
+      `Predictions are only generated for upcoming matches in the next ${PREDICTION_WINDOW_DAYS} days.`,
+      esc
     );
   }
   return "";
+}
+
+function canShowPredictionToggle(m) {
+  return !!predictionContent(m);
+}
+
+function predToggleHtml(open) {
+  const icon = open ? "▲" : "✨";
+  const text = open ? "Hide AI Prediction" : "Show AI Prediction";
+  return `<span class="pred-toggle-icon" aria-hidden="true">${icon}</span>${text}`;
+}
+
+function renderPredictionToggle(m) {
+  if (!canShowPredictionToggle(m)) return "";
+  const id = esc(m.id);
+  const open = isPredExpanded(m.id);
+  return `
+    <button type="button" class="btn pred-toggle" data-pred-toggle="${id}" aria-expanded="${open}" aria-controls="pred-panel-${id}">
+      ${predToggleHtml(open)}
+    </button>
+    <div class="pred-reveal${open ? " is-open" : ""}" id="pred-panel-${id}" data-pred-panel="${id}">
+      <div class="pred-reveal-inner">${predictionContent(m)}</div>
+    </div>`;
+}
+
+function togglePrediction(id, btn) {
+  const panel = document.getElementById(`pred-panel-${id}`);
+  const next = btn.getAttribute("aria-expanded") !== "true";
+  setPredExpanded(id, next);
+  btn.setAttribute("aria-expanded", String(next));
+  btn.innerHTML = predToggleHtml(next);
+  if (!panel) return;
+  if (next) {
+    panel.classList.add("is-open", "is-animating");
+    const onEnd = (e) => {
+      if (e.target.classList.contains("pred-callout")) {
+        panel.classList.remove("is-animating");
+        panel.removeEventListener("animationend", onEnd);
+      }
+    };
+    panel.addEventListener("animationend", onEnd);
+  } else {
+    panel.classList.remove("is-open", "is-animating");
+  }
 }
 
 function filterFixtures(fixtures, mode) {
@@ -96,8 +158,8 @@ function renderStats() {
   const played = view.fixtures.filter((f) => f.played).length;
   const upcoming = view.fixtures.length - played;
   $("stats-bar").innerHTML = `
-    <div class="stat"><div class="stat-num" style="color:#0f6e56">${alive}</div><div class="stat-label">Still in</div></div>
-    <div class="stat"><div class="stat-num" style="color:#a32d2d">${out}</div><div class="stat-label">Eliminated</div></div>
+    <div class="stat"><div class="stat-num stat-num--in">${alive}</div><div class="stat-label">Still in</div></div>
+    <div class="stat"><div class="stat-num stat-num--out">${out}</div><div class="stat-label">Eliminated</div></div>
     <div class="stat"><div class="stat-num">${played}</div><div class="stat-label">Played</div></div>
     <div class="stat"><div class="stat-num">${upcoming}</div><div class="stat-label">Upcoming</div></div>`;
 }
@@ -182,7 +244,7 @@ function renderFixtures() {
         <span class="stage-tag">${fmtDate(m.utcDate)} &middot; ${stageLabel(m)}</span>
         <span class="pill ${m.played ? "pill-in" : "pill-up"}">${m.played ? "Full time" : "Upcoming"}</span>
       </div>
-      ${renderPredictionSlot(m)}
+      ${renderPredictionToggle(m)}
     </div>`;
   }).join("");
 }
@@ -316,4 +378,8 @@ document.querySelectorAll(".nav-tab").forEach((btn) =>
   $(id).addEventListener("input", renderLB));
 ["fix-stage", "fix-group"].forEach((id) =>
   $(id).addEventListener("change", renderFixtures));
+$("fix-list").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-pred-toggle]");
+  if (btn) togglePrediction(btn.dataset.predToggle, btn);
+});
 load();
