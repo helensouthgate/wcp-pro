@@ -1,6 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { normalizePredictionItem, formatPredictionHtml } from "../lib/predictionDisplay.js";
+import {
+  normalizePredictionItem,
+  formatPredictionHtml,
+  formatPredictionScoreLine
+} from "../lib/predictionDisplay.js";
 
 const esc = (s) => s;
 
@@ -24,6 +28,16 @@ test("normalizePredictionItem supports legacy prediction string", () => {
   assert.equal(out.text, "England 2-0.");
 });
 
+test("formatPredictionScoreLine includes both team names", () => {
+  const line = formatPredictionScoreLine(
+    { score: "3-1", winner: "Spain" },
+    "Spain",
+    "England",
+    esc
+  );
+  assert.equal(line, "Spain 3 – 1 England");
+});
+
 test("formatPredictionHtml renders structured fields", () => {
   const html = formatPredictionHtml({
     score: "2-1",
@@ -31,11 +45,14 @@ test("formatPredictionHtml renders structured fields", () => {
     confidence: "medium",
     reason: "Control in midfield.",
     sweepstake: "Helen stays in; Axel is out."
-  }, esc);
-  assert.match(html, /pred-label/);
+  }, esc, { home: "England", away: "Spain" });
+  assert.match(html, /pred-callout/);
   assert.match(html, /AI prediction/);
-  assert.match(html, /2-1 England/);
-  assert.match(html, /medium confidence/);
+  assert.match(html, /England 2 – 1 Spain/);
+  assert.match(html, /medium/);
+  assert.match(html, /Sweepstake/);
   assert.match(html, /Control in midfield/);
   assert.match(html, /Helen stays in/);
+  assert.doesNotMatch(html, /pred-box/);
+  assert.doesNotMatch(html, /🏢/);
 });
