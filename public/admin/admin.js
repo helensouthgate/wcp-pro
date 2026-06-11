@@ -59,12 +59,54 @@ function showAdmin() {
 
 // ─── STATE / RENDER ──────────────────────────────────────────────────────────
 
+function formatPredictionResult({ elapsed = null } = {}) {
+  const cost = view?.lastPredictionCost;
+  if (!cost && !elapsed) return "";
+  const days = cost?.windowDays || 14;
+  const parts = [];
+  if (elapsed) {
+    parts.push(`Predictions updated in <strong>${esc(elapsed)}</strong>`);
+  } else if (view?.lastPrediction) {
+    parts.push(`Last updated <strong>${esc(fmt(view.lastPrediction))}</strong>`);
+  }
+  if (cost) {
+    const scope = cost.scopedFixtures != null
+      ? `${cost.predictions || 0}/${cost.scopedFixtures} predictions (next ${days} days)`
+      : `${cost.predictions || 0} predictions`;
+    parts.push(
+      `${scope}, ${cost.batches || 0} batches, est. <strong>${esc(cost.formatted || "$0.00")}</strong>`
+    );
+  }
+  return parts.join(" · ");
+}
+
+function renderPredictionResult({ elapsed = null, running = false } = {}) {
+  const result = $("predict-result");
+  const timer = $("predict-timer");
+  if (running) {
+    result.classList.add("hidden");
+    result.innerHTML = "";
+    return;
+  }
+  const html = formatPredictionResult({ elapsed });
+  if (!html) {
+    result.classList.add("hidden");
+    result.innerHTML = "";
+    timer.classList.add("hidden");
+    return;
+  }
+  timer.classList.add("hidden");
+  result.innerHTML = html;
+  result.classList.remove("hidden");
+}
+
 async function loadState() {
   view = await api("/api/state");
   const opts = Object.keys(view.groups).map((g) => `<option value="${g}">Group ${g}</option>`).join("");
   $("adm-group").innerHTML = '<option value="all">All groups</option>' + opts;
   $("sync-status").textContent = view.lastSync ? "Last synced " + fmt(view.lastSync) : "Not synced yet";
   $("predict-status").textContent = view.lastPrediction ? "Last run " + fmt(view.lastPrediction) : "Not run yet";
+  renderPredictionResult();
   renderMatches();
   renderOverrides();
 }
@@ -108,6 +150,59 @@ function renderOverrides() {
     : '<span style="font-size:12px;color:var(--text3)">No teams eliminated yet</span>';
 }
 
+// ─── PREDICTION TIMER ──────────────────────────────────────────────────────
+
+function formatElapsed(ms) {
+  const totalSec = Math.max(0, Math.floor(ms / 1000));
+  if (totalSec < 60) return `${totalSec}s`;
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  return sec ? `${min}m ${sec}s` : `${min}m`;
+}
+
+function createPredictTimer() {
+  const el = $("predict-timer");
+  const started = performance.now();
+  let intervalId = null;
+  let currentLabel = "Running…";
+
+  const tick = () => {
+    el.textContent = `${currentLabel} ${formatElapsed(performance.now() - started)}`;
+  };
+
+  const start = (label = "Running…") => {
+    currentLabel = label;
+    el.classList.remove("hidden", "done");
+    tick();
+    if (!intervalId) intervalId = setInterval(tick, 1000);
+  };
+
+  const finish = (label, { done = true, hide = true } = {}) => {
+    if (intervalId) clearInterval(intervalId);
+    intervalId = null;
+    const elapsed = formatElapsed(performance.now() - started);
+    if (hide) {
+      el.classList.add("hidden");
+      el.textContent = "";
+    } else {
+      el.textContent = `${label} ${elapsed}`;
+      el.classList.toggle("done", done);
+      el.classList.remove("hidden");
+    }
+    return elapsed;
+  };
+
+  const clear = () => {
+    if (intervalId) clearInterval(intervalId);
+    intervalId = null;
+    el.textContent = "";
+    el.classList.add("hidden");
+    el.classList.remove("done");
+  };
+
+  return { start, finish, clear };
+}
+
 // ─── ACTIONS ───────────────────────────────────────────────────────────────
 
 async function post(body) {
@@ -125,15 +220,46 @@ async function sync() {
   finally { $("sync-btn").disabled = false; $("sync-btn").innerHTML = "↻ Sync now"; }
 }
 
+async function waitForPrediction(previousRun, timer, { attempts = 450, delayMs = 2000 } = {}) {
+  for (let i = 0; i < attempts; i++) {
+    await new Promise((r) => setTimeout(r, delayMs));
+    const state = await api("/api/state");
+    if (state.lastPrediction && state.lastPrediction !== previousRun) {
+      view = state;
+      $("predict-status").textContent = "Last run " + fmt(view.lastPrediction);
+      const elapsed = timer.finish("Completed in", { hide: true });
+      renderPredictionResult({ elapsed });
+      return true;
+    }
+  }
+  timer.finish("Still running after", { done: false, hide: false });
+  return false;
+}
+
 async function generate() {
   $("predict-btn").disabled = true;
   $("predict-btn").innerHTML = '<span class="spin"></span> Generating…';
+  const previousRun = view?.lastPrediction || null;
+  const timer = createPredictTimer();
   try {
+    renderPredictionResult({ running: true });
+    timer.start("Running…");
     const r = await api("/api/predict", { method: "POST" });
-    toast(`Generated ${r.count} predictions`);
-    await loadState();
-  } catch (e) { toast(e.message); }
-  finally { $("predict-btn").disabled = false; $("predict-btn").innerHTML = "✨ Generate now"; }
+    if (r.started) {
+      const ok = await waitForPrediction(previousRun, timer);
+      if (!ok) await loadState();
+    } else {
+      const elapsed = timer.finish("Completed in", { hide: true });
+      await loadState();
+      renderPredictionResult({ elapsed });
+    }
+  } catch (e) {
+    timer.clear();
+    toast(e.message);
+  } finally {
+    $("predict-btn").disabled = false;
+    $("predict-btn").innerHTML = "✨ Generate now";
+  }
 }
 
 // ─── EVENTS ──────────────────────────────────────────────────────────────────

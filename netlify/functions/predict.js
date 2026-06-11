@@ -1,8 +1,8 @@
 // /api/predict  (admin only) — "Generate now" button.
-// Force an immediate prediction refresh, independent of the hourly schedule.
+// Clears cached predictions and starts a background regeneration job (202).
 
 import { json, error, isAdmin } from "./lib/respond.js";
-import { runPredictions } from "./lib/runPredictions.js";
+import { invokePredictBackground } from "./lib/invokePredictBackground.js";
 
 export const config = { path: "/api/predict" };
 
@@ -11,8 +11,9 @@ export default async function handler(req) {
   if (!isAdmin(req)) return error("Unauthorized", 401);
 
   try {
-    const result = await runPredictions();
-    return json({ ok: true, ...result });
+    const origin = new URL(req.url).origin;
+    await invokePredictBackground({ origin });
+    return json({ ok: true, started: true }, 202);
   } catch (e) {
     return error("Prediction failed: " + e.message, 502);
   }

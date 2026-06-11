@@ -4,6 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WC 2026 Sweepstake</title>
+<script>
+(function () {
+  var KEY = "wcp-tab";
+  var PANELS = ["leaderboard", "fixtures", "groups"];
+  var id = "leaderboard";
+  try {
+    var saved = localStorage.getItem(KEY);
+    if (PANELS.indexOf(saved) !== -1) id = saved;
+  } catch (e) {}
+  document.documentElement.dataset.tab = id;
+})();
+</script>
 <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -16,7 +28,7 @@
       <span class="tbadge">USA · Canada · Mexico</span>
     </div>
     <nav class="nav-tabs">
-      <button class="nav-tab active" data-panel="leaderboard">Leaderboard</button>
+      <button class="nav-tab" data-panel="leaderboard">Leaderboard</button>
       <button class="nav-tab" data-panel="fixtures">Fixtures</button>
       <button class="nav-tab" data-panel="groups">Groups</button>
     </nav>
@@ -27,7 +39,8 @@
 <main class="page">
 
   <!-- LEADERBOARD -->
-  <div id="panel-leaderboard" class="panel active">
+  <div id="panel-leaderboard" class="panel">
+    <div class="info-callout sync-notice" id="sync-notice-lb" aria-live="polite"></div>
     <div class="stats-bar" id="stats-bar"></div>
     <div class="toolbar">
       <input type="text" id="lb-search" placeholder="Search name or team…">
@@ -45,6 +58,7 @@
 
   <!-- FIXTURES -->
   <div id="panel-fixtures" class="panel">
+    <div class="info-callout sync-notice" id="sync-notice-fix" aria-live="polite"></div>
     <div class="toolbar">
       <select id="fix-stage">
         <option value="all">All fixtures</option>
@@ -61,6 +75,7 @@
 
   <!-- GROUPS -->
   <div id="panel-groups" class="panel">
+    <div class="info-callout sync-notice" id="sync-notice-grp" aria-live="polite"></div>
     <div class="groups-grid" id="groups-grid"></div>
   </div>
 
@@ -68,6 +83,7 @@
 <div class="toast" id="toast"></div>
 
 <script src="/when.js"></script>
+<script src="/predictionDisplay.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>
