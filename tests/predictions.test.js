@@ -52,7 +52,9 @@ test("buildPrompt includes context, structure, and sweepstake", () => {
   assert.match(p, /confidence/);
   assert.match(p, /sweepstake/);
   assert.match(p, /id "f1"/);
-  assert.match(p, /England vs Panama/);
+  assert.match(p, /HOME England vs AWAY Panama/);
+  assert.match(p, /HOME-AWAY/);
+  assert.match(p, /score and winner agree/);
   assert.match(p, /ONLY a valid JSON array/);
   assert.doesNotMatch(p, /web_search/i);
 });
@@ -74,6 +76,23 @@ test("parsePredictionResponse handles structured array", () => {
   assert.equal(out.f2.score, "2-1");
   assert.equal(out.f2.winner, "Brazil");
   assert.equal(out.f2.sweepstake, structured.sweepstake);
+});
+
+test("parsePredictionResponse swaps inverted scores using fixture context", () => {
+  const item = {
+    id: "537334",
+    home: "Qatar",
+    away: "Switzerland",
+    score: "3-0",
+    winner: "Switzerland",
+    confidence: "high",
+    reason: "Switzerland are stronger.",
+    sweepstake: "Eugene is delighted."
+  };
+  const fx = { id: "537334", home: "Qatar", away: "Switzerland" };
+  const out = parsePredictionResponse(`[${JSON.stringify(item)}]`, { 537334: fx });
+  assert.equal(out["537334"].score, "0-3");
+  assert.equal(out["537334"].winner, "Switzerland");
 });
 
 test("parsePredictionResponse supports legacy one-line predictions", () => {
@@ -168,14 +187,19 @@ test("generatePredictions batches until all missing fixtures are covered", async
       json: async () => ({
         content: [{
           type: "text",
-          text: JSON.stringify(ids.map((id) => ({
-            id,
-            score: "1-0",
-            winner: "Home",
-            confidence: "low",
-            reason: "Test.",
-            sweepstake: "Nobody cares."
-          })))
+          text: JSON.stringify(ids.map((id) => {
+            const i = id.replace(/^f/, "");
+            return {
+              id,
+              home: `Home${i}`,
+              away: `Away${i}`,
+              score: "1-0",
+              winner: `Home${i}`,
+              confidence: "low",
+              reason: "Test.",
+              sweepstake: "Nobody cares."
+            };
+          }))
         }],
         usage: { input_tokens: 50, output_tokens: 100 }
       })
